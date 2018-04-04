@@ -1,5 +1,11 @@
-[{
-	"repo": "",
-	"secert": "",
-	"events": []
-}]
+{
+	"port": 8080,
+	"repositories": [{
+		"repo": "",
+		"local": "",
+		"secert": "",
+		"branch": "master",
+		"remote": "origin",
+		"events": ["push"]
+	}]
+}

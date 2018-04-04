@@ -1,6 +1,12 @@
 # ignore directory
 ignore-me
 
+# ignore configuration
+config.json
+
+# ignore archived files
+*.tar
+
 # Logs
 logs
 *.log
