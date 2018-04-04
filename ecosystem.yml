@@ -1,0 +1,9 @@
+apps:
+  - script   : ./src/bin
+    name     : webhook-to-pull
+    instances: 1
+    exec_mode: cluster
+    watch:
+      - src
+    env:
+      NODE_ENV: production

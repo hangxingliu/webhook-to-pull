@@ -1,3 +1,6 @@
+# vscode settings
+.vscode
+
 # ignore directory
 ignore-me
 
@@ -6,6 +9,9 @@ config.json
 
 # ignore archived files
 *.tar
+
+# remote mount point
+remote-mount
 
 # Logs
 logs

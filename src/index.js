@@ -8,9 +8,17 @@ let express = require('express'),
 let bodyParser = require('body-parser'),
 	hookRequest = require('./handle-hook-request');
 
+if (process.argv.indexOf('test') >= 2) {
+	log.info('The configuration looks good!');
+	process.exit(0);
+}
+
 let app = express();
 
 app.use(require('morgan')('dev'));
+
+app.get('/', (req, res) => resposneStatusJson(res, { status: 200, message: 'OK!' }));
+app.get('/hook', (req, res) => resposneStatusJson(res, { status: 405, message: '405 Method Not Allowed' }));
 
 app.use(bodyParser.raw({ inflate: true, limit: '64kb', type: 'application/*' }));
 app.post('/hook', (req, res) => {

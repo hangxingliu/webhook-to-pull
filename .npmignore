@@ -9,3 +9,10 @@ config.json
 
 # ignore archived files
 *.tar
+*.tgz
+
+# remote mount point
+remote-mount
+
+# vscode settings
+.vscode

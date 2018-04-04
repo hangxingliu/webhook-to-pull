@@ -1,11 +1,12 @@
 {
 	"port": 8080,
-	"repositories": [{
-		"repo": "",
-		"local": "",
-		"secert": "",
-		"branch": "master",
-		"remote": "origin",
-		"events": ["push"]
-	}]
+	"repositories": {
+		"hangxingliu/test-project": {
+			"local": "/path/to/repo-dir",
+			"secret": "ahotdogiseatinghotdog",
+			"branch": "master",
+			"remote": "origin",
+			"events": ["push"]
+		}
+	}
 }
