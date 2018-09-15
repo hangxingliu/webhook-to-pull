@@ -2,7 +2,15 @@
 
 Recevied webhook request then pull repository. For continuous deployment.
 
-For example: your server can pull repository automatically after you push a commit to **Github/Gogs/Bitbucket**.
+For example: your server can pull repository automatically after you push a commit to git server.
+
+Support webhook provider: 
+
+- Github
+- Bitbucket
+- Gogs
+- coding.net
+- gitee.com
 
 ![](images/flow.svg)
 
@@ -61,6 +69,21 @@ And you can access follwing URL in browser or cURL to make sure this program is 
 3. Setup following configurations and click **Save** button
 	- **Title**: Fill in whatever you like 
 	- **URL**: `http://${YOUR_DOMAIN}:${PORT}/hook?secret=${SECRET}`
+
+#### coding.net
+
+1. 前往项目的 **设置** > **WebHook** > **新建 WebHook**
+2. 填写下列信息后点击 **新建 WebHook**
+	- **URL**: `http://${你的域名或IP}:${端口号}/hook`
+	- **内容类型**: `application/json`
+	- **令牌**: 你在配置文件中设置的 `secret` 值
+
+#### gitee.com
+
+1. 前往项目的 **管理** > **WebHook** > **添加**
+2. 填写下列信息后点击 **提交**
+	- **URL**: `http://${你的域名或IP}:${端口号}/hook`
+	- **密码**: 你在配置文件中设置的 `secret` 值
 
 ## 👨🏼‍💻 Author
 

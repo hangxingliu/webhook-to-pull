@@ -21,6 +21,7 @@ type WebhookRequestBody = {
 
 	repository: {
 		full_name: string
+		path_with_namespace?: string;
 	};
 };
 

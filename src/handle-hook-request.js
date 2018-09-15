@@ -26,6 +26,16 @@ const HEADER_NAMES = {
 		event: 'x-event-key',
 		delivery: 'x-request-uuid',
 	},
+	'coding.net': {
+		event: 'x-coding-event',
+		delivery: 'x-coding-delivery',
+		signature: 'x-coding-signature',
+	},
+	'gitee.com': {
+		event: 'x-gitee-event',
+		delivery: 'x-gitee-event',
+		signature: 'x-gitee-token',
+	},
 };
 
 module.exports = { handle };
@@ -48,7 +58,7 @@ function verifyGogs(actual, rawBody, secret) {
 }
 
 /** @type {VerifyFunction} */
-function verifyBitbucket(actual, rawBody, secret) {
+function verifyBitbucketOrGitee(actual, rawBody, secret) {
 	return String(secret) === String(actual);
 }
 
@@ -70,28 +80,35 @@ function handle(queryStrings, headers, body) {
 	if (!requestBody.repository)
 		return invalidRequest('invalid request body (empty `repository`)');
 
-	const repoName = requestBody.repository.full_name;
-	if (typeof requestBody.repository.full_name != 'string')
+	let repoName = requestBody.repository.full_name;
+	if (typeof repoName != 'string')
 		return invalidRequest('invalid request body (`repository.full_name` is not a string)');
 
 	const repositories = config.get().repositories;
-	if (!Object.prototype.hasOwnProperty.call(repositories, repoName))
-		return invalidRequest(`"${repoName}" is not defined in config`);
+	if (!Object.prototype.hasOwnProperty.call(repositories, repoName)) {
+		// try "path_with_namespace" for gitee.com
+		const tryAgain = requestBody.repository.path_with_namespace;
+
+		if (typeof tryAgain !== 'string' || !Object.prototype.hasOwnProperty.call(repositories, tryAgain))
+			return invalidRequest(`"${repoName}" is not defined in config`);
+
+		repoName = tryAgain;
+	}
 
 	const repoConfig = repositories[repoName];
 	const { secret, type } = repoConfig;
 	const headerNames = HEADER_NAMES[type];
 
-	const insecureVerify = (type === config.TYPE_BITBUCKET);
+	const fromBitbucket = (type === config.TYPE_BITBUCKET);
 
-	const signature = insecureVerify
+	const signature = fromBitbucket
 		? pickAnyOf(queryStrings, 'secret', 'token')
 		: String(headers[headerNames.signature]);
 	const event = String(headers[headerNames.event]);
 	const delivery = String(headers[headerNames.delivery]);
 
 	if (!signature)
-		return invalidRequest(insecureVerify
+		return invalidRequest(fromBitbucket
 			? `query string is not included "secret" or "token"`
 			: `header ${headerNames.signature} is empty`);
 	if (!event)
@@ -101,7 +118,8 @@ function handle(queryStrings, headers, body) {
 
 	let verifyMethod = verifyGithub;
 	if (type === config.TYPE_GOGS) verifyMethod = verifyGogs;
-	else if (type === config.TYPE_BITBUCKET) verifyMethod = verifyBitbucket;
+	else if (fromBitbucket || type === config.TYPE_GITEE_COM) verifyMethod = verifyBitbucketOrGitee;
+	// coding.net use verify method same as github
 
 	let verified = verifyMethod(signature, body, secret);
 	if (!verified)

@@ -40,6 +40,8 @@
 						"type": "string",
 						"enum": [
 							"bitbucket",
+							"coding.net",
+							"gitee.com",
 							"github",
 							"gogs"
 						]
