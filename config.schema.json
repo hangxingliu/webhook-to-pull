@@ -39,6 +39,7 @@
 					"type": {
 						"type": "string",
 						"enum": [
+							"bitbucket",
 							"github",
 							"gogs"
 						]

@@ -1,4 +1,5 @@
 //@ts-check
+/// <reference path="./index.d.ts" />
 
 const log = require('./log');
 const config = require('./config-loader');
@@ -9,7 +10,7 @@ const { exec } = require('child_process');
 
 const GIT = path.join(__dirname, 'git.sh');
 
-/** @type {{[x: string]: {signature: string; event: string; delivery: string;}}} */
+/** @type {{[x: string]: {signature?: string; event: string; delivery: string;}}} */
 const HEADER_NAMES = {
 	github: {
 		signature: 'x-hub-signature',
@@ -20,7 +21,11 @@ const HEADER_NAMES = {
 		signature: 'x-gogs-signature',
 		event: 'x-gogs-event',
 		delivery: 'x-gogs-delivery',
-	}
+	},
+	bitbucket: {
+		event: 'x-event-key',
+		delivery: 'x-request-uuid',
+	},
 };
 
 module.exports = { handle };
@@ -30,36 +35,35 @@ function escapedShellString(strings) {
 	return strings.map(str => "'" + str.replace(/'/g, "'\\''") + "'");
 }
 
-/**
- * @param {string} actual
- * @param {Buffer} rawBody
- * @param {string} secret
- */
+/** @type {VerifyFunction} */
 function verifyGithub(actual, rawBody, secret) {
 	let expected = 'sha1=' + crypto.createHmac('sha1', secret).update(rawBody).digest('hex');
 	return Buffer.from(expected).equals(Buffer.from(actual));
 }
 
-/**
- * @param {string} actual
- * @param {Buffer} rawBody
- * @param {string} secret
- */
+/** @type {VerifyFunction} */
 function verifyGogs(actual, rawBody, secret) {
 	let expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
 	return Buffer.from(expected).equals(Buffer.from(actual));
 }
 
+/** @type {VerifyFunction} */
+function verifyBitbucket(actual, rawBody, secret) {
+	return String(secret) === String(actual);
+}
+
 /**
+ * @param {{[name: string]: string}} queryStrings
  * @param {{[name: string]: string|string[]}} headers
  * @param {Buffer} body
  * @returns {Promise<{status: number; message: string}>}
  */
-function handle(headers, body) {
-	/** @type {GithubResponse} */
+function handle(queryStrings, headers, body) {
+	/** @type {WebhookRequestBody} */
 	let requestBody = safeParseJson(body);
 	if (config.get().dump)
-		dumpLogs(headers, requestBody);
+		dumpLogs(queryStrings, headers, requestBody);
+
 	if (!requestBody)
 		return invalidRequest('invalid request body (it is not a json)');
 
@@ -78,12 +82,18 @@ function handle(headers, body) {
 	const { secret, type } = repoConfig;
 	const headerNames = HEADER_NAMES[type];
 
-	const signature = String(headers[headerNames.signature]);
+	const insecureVerify = (type === config.TYPE_BITBUCKET);
+
+	const signature = insecureVerify
+		? pickAnyOf(queryStrings, 'secret', 'token')
+		: String(headers[headerNames.signature]);
 	const event = String(headers[headerNames.event]);
 	const delivery = String(headers[headerNames.delivery]);
 
 	if (!signature)
-		return invalidRequest(`header ${headerNames.signature} is empty`);
+		return invalidRequest(insecureVerify
+			? `query string is not included "secret" or "token"`
+			: `header ${headerNames.signature} is empty`);
 	if (!event)
 		return invalidRequest(`header ${headerNames.event} is empty`);
 	if (!delivery)
@@ -91,6 +101,7 @@ function handle(headers, body) {
 
 	let verifyMethod = verifyGithub;
 	if (type === config.TYPE_GOGS) verifyMethod = verifyGogs;
+	else if (type === config.TYPE_BITBUCKET) verifyMethod = verifyBitbucket;
 
 	let verified = verifyMethod(signature, body, secret);
 	if (!verified)
@@ -104,7 +115,7 @@ function handle(headers, body) {
 	log.info(`received verified hook request: ${event} ${repoName} (${headCommit})`);
 	log.info(`webhook delivery id: ${delivery}`);
 
-	if (repoConfig.events.indexOf(event) < 0) {
+	if (!isEventMatched(repoConfig.events, String(event), type)) {
 		log.warn(`ignore this event, because it is not included in ${JSON.stringify(repoConfig.events)}`);
 		return Promise.resolve({ status: 200, message: "ok! (but ignored this event)" });
 	}
@@ -148,8 +159,36 @@ function safeParseJson(json) {
 	}
 }
 
+/** @returns {string} */
+function pickAnyOf(queryStrings, ...names) {
+	if (!queryStrings) return;
+	for (let name of names) {
+		if (Object.prototype.hasOwnProperty.call(queryStrings, name))
+			return queryStrings[name];
+	}
+}
+
+/**
+ * @param {string[]} expectedEvents
+ * @param {string} actualEvent
+ * @param {string} type
+ */
+function isEventMatched(expectedEvents, actualEvent, type) {
+	if (expectedEvents.indexOf('*') >= 0) return true;
+
+	if (type === config.TYPE_BITBUCKET) {
+		const repoPrefix = 'repo:';
+		if (expectedEvents.indexOf(actualEvent) >= 0) return true;
+		if (actualEvent.startsWith(repoPrefix))
+			return expectedEvents.indexOf(actualEvent.slice(repoPrefix.length)) >= 0;
+		return false;
+	}
+	return expectedEvents.indexOf(actualEvent) >= 0;
+}
+
+
 let dumpLogsLock = false;
-function dumpLogs(headers, body) {
+function dumpLogs(queryStrings, headers, body) {
 	if (dumpLogsLock) return;
 	dumpLogsLock = true;
 
@@ -158,7 +197,7 @@ function dumpLogs(headers, body) {
 		if (!fs.existsSync(DIR))
 			fs.mkdirSync(DIR);
 		const targetFile = path.join(DIR, `${new Date().toJSON()}.json`);
-		fs.writeFileSync(targetFile, JSON.stringify({ headers, body }, null, '\t'));
+		fs.writeFileSync(targetFile, JSON.stringify({ queryStrings, headers, body }, null, '\t'));
 		log.info(`dump request to log file: ${targetFile}`);
 	} catch (ex) {
 		log.warn('dump request to log file failed!');

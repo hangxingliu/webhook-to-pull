@@ -10,10 +10,12 @@ const FILE = path.join(__dirname, '..', FILENAME);
 
 const TYPE_GITHUB = 'github';
 const TYPE_GOGS = 'gogs';
+const TYPE_BITBUCKET = 'bitbucket';
 
 const validType = {
 	[TYPE_GITHUB]: true,
 	[TYPE_GOGS]: true,
+	[TYPE_BITBUCKET]: true,
 };
 const defaultValues = {
 	branch: 'master',
@@ -30,7 +32,8 @@ module.exports = {
 	get,
 
 	TYPE_GITHUB,
-	TYPE_GOGS
+	TYPE_GOGS,
+	TYPE_BITBUCKET,
 };
 
 function readConfig() {

@@ -13,7 +13,7 @@ type ConfigRepo = {
 	events: string[];
 };
 
-type GithubResponse = {
+type WebhookRequestBody = {
 	head_commit?: {
 		id: string;
 		message: string;
@@ -23,3 +23,5 @@ type GithubResponse = {
 		full_name: string
 	};
 };
+
+type VerifyFunction = (actual: string, rawBody: Buffer, secret: string) => boolean;

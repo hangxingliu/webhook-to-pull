@@ -22,7 +22,7 @@ app.get('/hook', (req, res) => resposneStatusJson(res, { status: 405, message: '
 
 app.use(bodyParser.raw({ inflate: true, limit: '128kb', type: 'application/*' }));
 app.post('/hook', (req, res) => {
-	hookRequest.handle(req.headers, req.body)
+	hookRequest.handle(req.query, req.headers, req.body)
 		.then(result => resposneStatusJson(res, result))
 		.catch(error => {
 			resposneStatusJson(res, { status: 500, message: '500 Internal Server Error' });

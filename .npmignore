@@ -1,5 +1,6 @@
-# ignore directory
+# ignore directorys
 ignore-me
+test-env
 
 # ignore logs directory
 logs
