@@ -2,7 +2,7 @@
 
 Recevied webhook request then pull repository. For continuous deployment.
 
-For example: your server can pull repository automatically after you push a commit to Github.
+For example: your server can pull repository automatically after you push a commit to Github/Gogs.
 
 ![](images/flow.svg)
 
@@ -43,7 +43,7 @@ npm start
 And you can access follwing URL in browser or cURL to make sure this program is running:
 `http://127.0.0.1:8080/` (replace `8080` to your port number if you changed in config file)
 
-### 4. Configure Webhook in Github
+### 4. Configure Webhook in Github/Gogs
 
 1. Goto **Webhooks** page in your repository's **Settings** page.
 2. Click **Add webhook**

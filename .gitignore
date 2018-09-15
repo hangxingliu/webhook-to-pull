@@ -1,3 +1,6 @@
+# ignore dump logs
+logs
+
 # ignore test environment
 test-env
 

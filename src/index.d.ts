@@ -1,5 +1,6 @@
 type Config = {
 	port: number;
+	dump: boolean;
 	repositories: { [name: string]: ConfigRepo };
 };
 
@@ -8,6 +9,7 @@ type ConfigRepo = {
 	secret: string;
 	branch: string;
 	remote: string;
+	type: string;
 	events: string[];
 };
 

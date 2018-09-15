@@ -40,7 +40,7 @@ function getPrefix(type) {
  */
 function normal(content) {
 	content = getPrefix('LOG') + content;
-	console.log(content);
+	console.log(content); // eslint-disable-line no-console
 	// push2recent(content);
 }
 
@@ -49,7 +49,7 @@ function normal(content) {
  */
 function info(content) {
 	content = getPrefix('INFO') + content;
-	console.log(chalk.blue(content));
+	console.log(chalk.blue(content)); // eslint-disable-line no-console
 	// push2recent(content);
 }
 
@@ -58,7 +58,7 @@ function info(content) {
  */
 function warn(content) {
 	content = getPrefix('WARN') + content;
-	console.log(chalk.yellow(content));
+	console.log(chalk.yellow(content)); // eslint-disable-line no-console
 	// push2recent(content);
 }
 
@@ -69,16 +69,16 @@ function warn(content) {
 function error(content, reason = null, fatal = false) {
 	let prefix = getPrefix('ERROR');
 	content = prefix + content;
-	console.error(chalk.red.bold(content));
+	console.error(chalk.red.bold(content)); // eslint-disable-line no-console
 	// push2recent(content);
 
 	if (reason) {
 		let message = reason.stack || reason.message || String(reason);
 		message.split('\n').forEach(line => {
-			line = prefix + '  ' +line;
-			console.error(chalk.red(line));
+			line = prefix + '  ' + line;
+			console.error(chalk.red(line)); // eslint-disable-line no-console
 			// push2recent(line);
-		})
+		});
 	}
 
 	if (fatal) process.exit(1);

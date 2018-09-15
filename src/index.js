@@ -2,7 +2,7 @@
 
 let express = require('express'),
 	log = require('./log')	,
-	config = require('./config').load(),
+	config = require('./config-loader').load(),
 	server = require('./http-server');
 
 let bodyParser = require('body-parser'),
@@ -20,7 +20,7 @@ app.use(require('morgan')('dev'));
 app.get('/', (req, res) => resposneStatusJson(res, { status: 200, message: 'OK!' }));
 app.get('/hook', (req, res) => resposneStatusJson(res, { status: 405, message: '405 Method Not Allowed' }));
 
-app.use(bodyParser.raw({ inflate: true, limit: '64kb', type: 'application/*' }));
+app.use(bodyParser.raw({ inflate: true, limit: '128kb', type: 'application/*' }));
 app.post('/hook', (req, res) => {
 	hookRequest.handle(req.headers, req.body)
 		.then(result => resposneStatusJson(res, result))
@@ -34,6 +34,7 @@ app.use((req, res) => resposneStatusJson(res, { status: 404, message: `404 Not F
 app.use((err, req, res, next) => {
 	resposneStatusJson(res, { status: 500, message: `500 Internal Server Error` });
 	log.error(`Unhandled error:`, err);
+	void (next);
 });
 
 server.listen(app, config.port);

@@ -1,12 +1,27 @@
 //@ts-check
 
-let log = require('./log'),
-	config = require('./config'),
-	crypto = require('crypto'),
-	path = require('path'),
-	{ exec } = require('child_process');
+const log = require('./log');
+const config = require('./config-loader');
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
 
 const GIT = path.join(__dirname, 'git.sh');
+
+/** @type {{[x: string]: {signature: string; event: string; delivery: string;}}} */
+const HEADER_NAMES = {
+	github: {
+		signature: 'x-hub-signature',
+		event: 'x-github-event',
+		delivery: 'x-github-delivery',
+	},
+	gogs: {
+		signature: 'x-gogs-signature',
+		event: 'x-gogs-event',
+		delivery: 'x-gogs-delivery',
+	}
+};
 
 module.exports = { handle };
 
@@ -20,8 +35,18 @@ function escapedShellString(strings) {
  * @param {Buffer} rawBody
  * @param {string} secret
  */
-function verify(actual, rawBody, secret) {
+function verifyGithub(actual, rawBody, secret) {
 	let expected = 'sha1=' + crypto.createHmac('sha1', secret).update(rawBody).digest('hex');
+	return Buffer.from(expected).equals(Buffer.from(actual));
+}
+
+/**
+ * @param {string} actual
+ * @param {Buffer} rawBody
+ * @param {string} secret
+ */
+function verifyGogs(actual, rawBody, secret) {
+	let expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
 	return Buffer.from(expected).equals(Buffer.from(actual));
 }
 
@@ -31,47 +56,53 @@ function verify(actual, rawBody, secret) {
  * @returns {Promise<{status: number; message: string}>}
  */
 function handle(headers, body) {
-
-	let signature = String(headers['x-hub-signature']),
-		event = String(headers['x-github-event']),
-		delivery = String(headers['x-github-delivery']);
-
-	if (!signature)
-		return invalidRequest('header X-Hub-Signature is empty');
-	if (!event)
-		return invalidRequest('header X-Github-Event is empty');
-	if (!delivery)
-		return invalidRequest('header X-Github-Delivery is empty');
-
 	/** @type {GithubResponse} */
-	let response = safeParseJson(body);
-	if (!response)
+	let requestBody = safeParseJson(body);
+	if (config.get().dump)
+		dumpLogs(headers, requestBody);
+	if (!requestBody)
 		return invalidRequest('invalid request body (it is not a json)');
 
-	if (!response.repository)
+	if (!requestBody.repository)
 		return invalidRequest('invalid request body (empty `repository`)');
-	if (typeof response.repository.full_name != 'string')
+
+	const repoName = requestBody.repository.full_name;
+	if (typeof requestBody.repository.full_name != 'string')
 		return invalidRequest('invalid request body (`repository.full_name` is not a string)');
 
-	let repoName = response.repository.full_name;
-
-	let repositories = config.get().repositories;
-	if (!(repoName in repositories))
+	const repositories = config.get().repositories;
+	if (!Object.prototype.hasOwnProperty.call(repositories, repoName))
 		return invalidRequest(`"${repoName}" is not defined in config`);
 
-	let repoConfig = repositories[repoName],
-		secret = repoConfig.secret;
+	const repoConfig = repositories[repoName];
+	const { secret, type } = repoConfig;
+	const headerNames = HEADER_NAMES[type];
 
-	let verified = verify(signature, body, secret);
+	const signature = String(headers[headerNames.signature]);
+	const event = String(headers[headerNames.event]);
+	const delivery = String(headers[headerNames.delivery]);
+
+	if (!signature)
+		return invalidRequest(`header ${headerNames.signature} is empty`);
+	if (!event)
+		return invalidRequest(`header ${headerNames.event} is empty`);
+	if (!delivery)
+		return invalidRequest(`header ${headerNames.delivery} is empty`);
+
+	let verifyMethod = verifyGithub;
+	if (type === config.TYPE_GOGS) verifyMethod = verifyGogs;
+
+	let verified = verifyMethod(signature, body, secret);
 	if (!verified)
 		return invalidRequest(`invalid signature!`);
 
 	let headCommit = 'Unknown head commit';
-	if (response.head_commit) {
-		let head = response.head_commit;
+	if (requestBody.head_commit) {
+		let head = requestBody.head_commit;
 		headCommit = `${head.id.slice(0, 7)} ${JSON.stringify(head.message.split('\n')[0])}`;
 	}
 	log.info(`received verified hook request: ${event} ${repoName} (${headCommit})`);
+	log.info(`webhook delivery id: ${delivery}`);
 
 	if (repoConfig.events.indexOf(event) < 0) {
 		log.warn(`ignore this event, because it is not included in ${JSON.stringify(repoConfig.events)}`);
@@ -93,7 +124,7 @@ function gitPull(repoConfig) {
 				log.error(`git pull failed!`, error);
 				('stdout:\n' + String(stdout) + '\nstderr:\n' + String(stderr))
 					.split('\n').forEach(line => log.error(line));
-				return resolve({ status: 500, message: 'git pull failed!'});
+				return resolve({ status: 500, message: 'git pull failed!' });
 			}
 
 			let headCommitMtx = String(stdout).match(/HEAD_COMMIT=(\w+)/);
@@ -109,4 +140,29 @@ function invalidRequest(message = 'Bad Request') {
 	return Promise.resolve({ status: 400, message });
 }
 
-function safeParseJson(json) { try { return JSON.parse(json); } catch (ex) { } }
+function safeParseJson(json) {
+	try {
+		return JSON.parse(json);
+	} catch (ex) {
+		log.warn(`Exception be thrown in safeParseJson `);
+	}
+}
+
+let dumpLogsLock = false;
+function dumpLogs(headers, body) {
+	if (dumpLogsLock) return;
+	dumpLogsLock = true;
+
+	const DIR = path.join(__dirname, '..', 'logs');
+	try {
+		if (!fs.existsSync(DIR))
+			fs.mkdirSync(DIR);
+		const targetFile = path.join(DIR, `${new Date().toJSON()}.json`);
+		fs.writeFileSync(targetFile, JSON.stringify({ headers, body }, null, '\t'));
+		log.info(`dump request to log file: ${targetFile}`);
+	} catch (ex) {
+		log.warn('dump request to log file failed!');
+	}
+
+	dumpLogsLock = false;
+}
