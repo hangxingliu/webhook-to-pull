@@ -6,7 +6,7 @@
 	"bin": "src/bin",
 	"scripts": {
 		"start": "node ./src/bin",
-		"test": "mocha test/*.js"
+		"test": "eslint src"
 	},
 	"keywords": [
 		"github",

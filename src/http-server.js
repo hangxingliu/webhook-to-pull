@@ -27,14 +27,14 @@ function listen(app, port) {
 
 		// handle specific listen errors with friendly messages
 		switch (error.code) {
-			case 'EACCES':
-				log.fatal(bind + ' requires elevated privileges');
-				break;
-			case 'EADDRINUSE':
-				log.fatal(bind + ' is already in use');
-				break;
-			default:
-				throw error;
+		case 'EACCES':
+			log.fatal(bind + ' requires elevated privileges');
+			break;
+		case 'EADDRINUSE':
+			log.fatal(bind + ' is already in use');
+			break;
+		default:
+			throw error;
 		}
 	}
 

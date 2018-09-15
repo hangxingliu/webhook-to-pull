@@ -1,4 +1,5 @@
 {
+	"$schema": "./config.schema.json",
 	"port": 8080,
 	"repositories": {
 		"hangxingliu/test-project": {
