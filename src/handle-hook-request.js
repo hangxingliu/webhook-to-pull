@@ -146,21 +146,32 @@ function handle(queryStrings, headers, body) {
 function gitPull(repoConfig) {
 	let cmd = 'bash ' + escapedShellString([
 		GIT, 'pull',
-		repoConfig.local, repoConfig.remote, repoConfig.branch]).join(' ');
+		repoConfig.local, repoConfig.remote, repoConfig.branch,
+	].concat(repoConfig.afterPull ? [repoConfig.afterPull] : [])).join(' ');
 	return new Promise((resolve) => {
+		let resolved = false;
+		const resolveOnce = (result) => {
+			if (resolved) return;
+			resolved = true;
+			resolve(result);
+		};
+
 		exec(cmd, (error, stdout, stderr) => {
 			if (error) {
 				log.error(`git pull failed!`, error);
 				('stdout:\n' + String(stdout) + '\nstderr:\n' + String(stderr))
 					.split('\n').forEach(line => log.error(line));
-				return resolve({ status: 500, message: 'git pull failed!' });
+				return resolveOnce({ status: 500, message: 'git pull failed!' });
 			}
 
 			let headCommitMtx = String(stdout).match(/HEAD_COMMIT=(\w+)/);
 			let headCommit = headCommitMtx ? headCommitMtx[1] : 'Unknown';
 			log.info(`git pull done! (head commit hash: ${headCommit}  repo: ${repoConfig.local})`);
-			return resolve({ status: 200, message: `ok! (local HEAD: ${headCommit})` });
+			return resolveOnce({ status: 200, message: `ok! (local HEAD: ${headCommit})` });
 		});
+
+		if (repoConfig.async)
+			return resolveOnce({ status: 200, message: 'ok! (git pull asynchronous)' });
 	});
 }
 

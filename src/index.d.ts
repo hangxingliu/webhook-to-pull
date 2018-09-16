@@ -11,6 +11,8 @@ type ConfigRepo = {
 	remote: string;
 	type: string;
 	events: string[];
+	async: boolean;
+	afterPull: string;
 };
 
 type WebhookRequestBody = {

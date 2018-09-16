@@ -45,6 +45,14 @@
 							"github",
 							"gogs"
 						]
+					},
+					"async": {
+						"type": "boolean",
+						"description": "Make git pull asynchronous. (quick response and avoid timeout but response will be 200 although pull failed)"
+					},
+					"afterPull": {
+						"type": "string",
+						"description": "bash command after git pull success"
 					}
 				}
 			}

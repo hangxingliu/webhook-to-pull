@@ -84,12 +84,15 @@ function load() {
 			if (typeof repo[key] != 'string')
 				fatal(`${name}.${key} is not a string`);
 
-		for (let key of ['branch', 'remote']) {
+		for (let key of ['branch', 'remote', 'afterPull']) {
 			if (!(key in repo))
 				repo[key] = defaultValues[key];
 			else if (typeof repo[key] != 'string')
 				fatal(`${name}.${key} is not a string`);
 		}
+
+		if ('async' in repo && typeof repo.async != 'boolean')
+			fatal(`${name}.async is not a boolean`);
 
 		if (!repo.type)
 			repo.type = defaultValues.type;

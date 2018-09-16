@@ -7,7 +7,8 @@
 			"secret": "ahotdogiseatinghotdog",
 			"branch": "master",
 			"remote": "origin",
-			"events": ["push"]
+			"events": ["push"],
+			"afterPull": "git log -n1 > webhook-dump.txt"
 		}
 	}
 }
