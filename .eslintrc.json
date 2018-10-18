@@ -11,7 +11,10 @@
     "rules": {
         "indent": [
             "error",
-            "tab"
+			"tab",
+			{
+				"indentSwitchCase": false
+			}
         ],
         "linebreak-style": [
             "error",
