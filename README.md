@@ -6,11 +6,12 @@ For example: your server can pull repository automatically after you push a comm
 
 Support webhook provider: 
 
-- Github
-- Bitbucket
-- Gogs
-- coding.net
-- gitee.com
+- [Github](https://github.com/)
+- [Bitbucket](https://bitbucket.org)
+- [Gogs](https://gogs.io/)
+- [Gitea](https://gitea.io)
+- [coding.net](https://coding.net/)
+- [gitee.com](https://gitee.com/)
 
 ![](images/flow.svg)
 
@@ -53,7 +54,7 @@ And you can access follwing URL in browser or cURL to make sure this program is 
 
 ### 4. Configure Webhook
 
-#### Github/Gogs
+#### Github/Gogs/Gitea
 
 1. Goto **Webhooks** page in your repository's **Settings** page.
 2. Click **Add webhook**

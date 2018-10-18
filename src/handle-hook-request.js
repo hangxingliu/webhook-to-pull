@@ -1,12 +1,13 @@
 //@ts-check
 /// <reference path="./index.d.ts" />
 
-const log = require('./log');
-const config = require('./config-loader');
-const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+
+const log = require('./log');
+const config = require('./config-loader');
+const verify = require('./request-verify');
 
 const GIT = path.join(__dirname, 'git.sh');
 
@@ -25,6 +26,10 @@ const HEADER_NAMES = {
 	bitbucket: {
 		event: 'x-event-key',
 		delivery: 'x-request-uuid',
+	},
+	gitea: {
+		event: 'x-gitea-event',
+		delivery: 'x-gitea-delivery',
 	},
 	'coding.net': {
 		event: 'x-coding-event',
@@ -45,22 +50,6 @@ function escapedShellString(strings) {
 	return strings.map(str => "'" + str.replace(/'/g, "'\\''") + "'");
 }
 
-/** @type {VerifyFunction} */
-function verifyGithub(actual, rawBody, secret) {
-	let expected = 'sha1=' + crypto.createHmac('sha1', secret).update(rawBody).digest('hex');
-	return Buffer.from(expected).equals(Buffer.from(actual));
-}
-
-/** @type {VerifyFunction} */
-function verifyGogs(actual, rawBody, secret) {
-	let expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-	return Buffer.from(expected).equals(Buffer.from(actual));
-}
-
-/** @type {VerifyFunction} */
-function verifyBitbucketOrGitee(actual, rawBody, secret) {
-	return String(secret) === String(actual);
-}
 
 /**
  * @param {{[name: string]: string}} queryStrings
@@ -100,26 +89,47 @@ function handle(queryStrings, headers, body) {
 	const headerNames = HEADER_NAMES[type];
 
 	const fromBitbucket = (type === config.TYPE_BITBUCKET);
+	const fromGitea = (type === config.TYPE_GITEA);
 
-	const signature = fromBitbucket
-		? pickAnyOf(queryStrings, 'secret', 'token')
-		: String(headers[headerNames.signature]);
+	let signature = '';
+	if (fromBitbucket) {
+		signature = pickAnyOf(queryStrings, 'secret', 'token');
+		if(!signature)
+			return invalidRequest(`query string is not included "secret" or "token"`);
+
+	} else if (fromGitea) {
+		signature = String(requestBody['secret']);
+		if(!signature)
+			return invalidRequest(`body is not included "secret" field`);
+
+	} else {
+		signature = String(headers[headerNames.signature]);;
+		if(!signature)
+			return invalidRequest(`header ${headerNames.signature} is empty`);
+	}
+
 	const event = String(headers[headerNames.event]);
 	const delivery = String(headers[headerNames.delivery]);
-
-	if (!signature)
-		return invalidRequest(fromBitbucket
-			? `query string is not included "secret" or "token"`
-			: `header ${headerNames.signature} is empty`);
 	if (!event)
 		return invalidRequest(`header ${headerNames.event} is empty`);
 	if (!delivery)
 		return invalidRequest(`header ${headerNames.delivery} is empty`);
 
-	let verifyMethod = verifyGithub;
-	if (type === config.TYPE_GOGS) verifyMethod = verifyGogs;
-	else if (fromBitbucket || type === config.TYPE_GITEE_COM) verifyMethod = verifyBitbucketOrGitee;
-	// coding.net use verify method same as github
+	let verifyMethod = null;
+	switch (type) {
+		case config.TYPE_GOGS:
+			verifyMethod = verify.gogs;
+			break;
+		case config.TYPE_BITBUCKET:
+		case config.TYPE_GITEE_COM:
+		case config.TYPE_GITEA:
+			verifyMethod = verify.bitbucket_gitee_gitea;
+			break;
+		default:
+			// coding.net use verify method same as github
+			verifyMethod = verify.github;
+	}
+
 
 	let verified = verifyMethod(signature, body, secret);
 	if (!verified)

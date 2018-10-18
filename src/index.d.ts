@@ -16,6 +16,8 @@ type ConfigRepo = {
 };
 
 type WebhookRequestBody = {
+	secret?: string;
+
 	head_commit?: {
 		id: string;
 		message: string;

@@ -13,13 +13,15 @@ const TYPE_GOGS = 'gogs';
 const TYPE_BITBUCKET = 'bitbucket';
 const TYPE_CODING_NET = 'coding.net';
 const TYPE_GITEE_COM = 'gitee.com';
+const TYPE_GITEA = 'gitea';
 
 const validType = {
 	[TYPE_GITHUB]: true,
 	[TYPE_GOGS]: true,
 	[TYPE_BITBUCKET]: true,
 	[TYPE_CODING_NET]: true,
-	[TYPE_GITEE_COM]: true
+	[TYPE_GITEE_COM]: true,
+	[TYPE_GITEA]: true,
 };
 const defaultValues = {
 	branch: 'master',
@@ -40,6 +42,7 @@ module.exports = {
 	TYPE_BITBUCKET,
 	TYPE_CODING_NET,
 	TYPE_GITEE_COM,
+	TYPE_GITEA,
 };
 
 function readConfig() {

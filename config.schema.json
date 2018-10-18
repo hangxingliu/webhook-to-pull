@@ -43,7 +43,8 @@
 							"coding.net",
 							"gitee.com",
 							"github",
-							"gogs"
+							"gogs",
+							"gitea"
 						]
 					},
 					"async": {
