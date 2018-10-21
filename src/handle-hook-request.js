@@ -8,6 +8,8 @@ const { exec } = require('child_process');
 const log = require('./log');
 const config = require('./config-loader');
 const verify = require('./request-verify');
+const { dumpRequest } = require('./request-dump');
+const { isEventMatched } = require('./event-matcher');
 
 const GIT = path.join(__dirname, 'git.sh');
 
@@ -65,7 +67,7 @@ function handle(queryStrings, headers, body) {
 	/** @type {WebhookRequestBody} */
 	let requestBody = safeParseJson(body);
 	if (config.get().dump)
-		dumpLogs(queryStrings, headers, requestBody);
+		dumpRequest(queryStrings, headers, requestBody);
 
 	if (!requestBody)
 		return invalidRequest('invalid request body (it is not a json)');
@@ -233,53 +235,4 @@ function pickAnyOf(queryStrings, ...names) {
 	}
 }
 
-/**
- * @param {string[]} expectedEvents
- * @param {string} actualEvent
- * @param {string} type
- */
-function isEventMatched(expectedEvents, actualEvent, type) {
-	if (expectedEvents.indexOf('*') >= 0) return true;
 
-	if (type === config.TYPE_BITBUCKET) {
-		const repoPrefix = 'repo:';
-		if (expectedEvents.indexOf(actualEvent) >= 0) return true;
-		if (actualEvent.startsWith(repoPrefix))
-			return expectedEvents.indexOf(actualEvent.slice(repoPrefix.length)) >= 0;
-		return false;
-	}
-
-	if (type === config.TYPE_GITLAB) {
-		if (expectedEvents.indexOf(actualEvent) >= 0) return true;
-
-		const lowercaseActualEvent = actualEvent.toLowerCase();
-		if (expectedEvents.indexOf(lowercaseActualEvent) >= 0) return true;
-
-		if (lowercaseActualEvent.endsWith(' hook')) {
-			// ' hook'.length === 5
-			const lastTry = lowercaseActualEvent.slice(0, lowercaseActualEvent.length - 5);
-			return expectedEvents.indexOf(lastTry) >= 0;
-		}
-	}
-	return expectedEvents.indexOf(actualEvent) >= 0;
-}
-
-
-let dumpLogsLock = false;
-function dumpLogs(queryStrings, headers, body) {
-	if (dumpLogsLock) return;
-	dumpLogsLock = true;
-
-	const DIR = path.join(__dirname, '..', 'logs');
-	try {
-		if (!fs.existsSync(DIR))
-			fs.mkdirSync(DIR);
-		const targetFile = path.join(DIR, `${new Date().toJSON()}.json`);
-		fs.writeFileSync(targetFile, JSON.stringify({ queryStrings, headers, body }, null, '\t'));
-		log.info(`dump request to log file: ${targetFile}`);
-	} catch (ex) {
-		log.warn('dump request to log file failed!');
-	}
-
-	dumpLogsLock = false;
-}
