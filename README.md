@@ -7,6 +7,7 @@ For example: your server can pull repository automatically after you push a comm
 Support webhook provider: 
 
 - [Github](https://github.com/)
+- [GitLab](https://gitlab.com/)
 - [Bitbucket](https://bitbucket.org)
 - [Gogs](https://gogs.io/)
 - [Gitea](https://gitea.io)
@@ -62,6 +63,13 @@ And you can access follwing URL in browser or cURL to make sure this program is 
 	- **Payload URL**: `http://${YOUR_DOMAIN}:${PORT}/hook`
 	- **Content type**: `application/json`
 	- **Secret**: The secret you setup in your config file
+
+#### GitLab
+
+1. Goto **Integrations** page in your repository's **Settings** panel (Left side of the page).
+2. Fill form with following configurations and click **Add webhook**
+	- **URL**: `http://${YOUR_DOMAIN}:${PORT}/hook`
+	- **Secret Token**: The secret you setup in your config file
 
 #### Bitbucket
 

@@ -1,6 +1,6 @@
 # TODO
 
 - [ ] add unit tests
-- [ ] support `gitlab`
+- [x] support `gitlab`
 - [ ] waiting queue
 - [ ] 1.2.0 

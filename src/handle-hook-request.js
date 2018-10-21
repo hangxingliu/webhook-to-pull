@@ -11,12 +11,16 @@ const verify = require('./request-verify');
 
 const GIT = path.join(__dirname, 'git.sh');
 
-/** @type {{[x: string]: {signature?: string; event: string; delivery: string;}}} */
+/** @type {{[x: string]: {signature?: string; event: string; delivery?: string;}}} */
 const HEADER_NAMES = {
 	github: {
 		signature: 'x-hub-signature',
 		event: 'x-github-event',
 		delivery: 'x-github-delivery',
+	},
+	gitlab: {
+		signature: 'x-gitlab-token',
+		event: 'x-gitlab-event',
 	},
 	gogs: {
 		signature: 'x-gogs-signature',
@@ -69,19 +73,39 @@ function handle(queryStrings, headers, body) {
 	if (!requestBody.repository)
 		return invalidRequest('invalid request body (empty `repository`)');
 
-	let repoName = requestBody.repository.full_name;
-	if (typeof repoName != 'string')
-		return invalidRequest('invalid request body (`repository.full_name` is not a string)');
+	/** @type {Set<string>} */
+	const maybeRepoNames = new Set();
+
+	if (typeof requestBody.repository.full_name === 'string')
+		maybeRepoNames.add(requestBody.repository.full_name);
+
+	if (typeof requestBody.repository.path_with_namespace === 'string')
+		maybeRepoNames.add(requestBody.repository.path_with_namespace);
+
+	if (requestBody.project &&
+		typeof requestBody.project.path_with_namespace === 'string')
+		maybeRepoNames.add(requestBody.project.path_with_namespace);
+
+	if (maybeRepoNames.size === 0) {
+		return invalidRequest('invalid request body (can not find repo name string from: ' +
+			'`repository.full_name`, ' +
+			'`repository.path_with_namespace`, ' +
+			'`project.path_with_namespace`' + ')');
+	}
+
 
 	const repositories = config.get().repositories;
-	if (!Object.prototype.hasOwnProperty.call(repositories, repoName)) {
-		// try "path_with_namespace" for gitee.com
-		const tryAgain = requestBody.repository.path_with_namespace;
-
-		if (typeof tryAgain !== 'string' || !Object.prototype.hasOwnProperty.call(repositories, tryAgain))
-			return invalidRequest(`"${repoName}" is not defined in config`);
-
-		repoName = tryAgain;
+	let repoName = '';
+	for (const tryRepoName of maybeRepoNames) {
+		if (Object.prototype.hasOwnProperty.call(repositories, tryRepoName)) {
+			repoName = tryRepoName;
+			break;
+		}
+	}
+	if (!repoName) {
+		const names = Array.from(maybeRepoNames).map(it => `"${it}"`);
+		const be = names.length > 1 ? 'are' : 'is';
+		return invalidRequest(`${names.join(', ')} ${be} not defined in config`);
 	}
 
 	const repoConfig = repositories[repoName];
@@ -90,6 +114,7 @@ function handle(queryStrings, headers, body) {
 
 	const fromBitbucket = (type === config.TYPE_BITBUCKET);
 	const fromGitea = (type === config.TYPE_GITEA);
+	const fromGitlab = (type === config.TYPE_GITLAB);
 
 	let signature = '';
 	if (fromBitbucket) {
@@ -109,7 +134,7 @@ function handle(queryStrings, headers, body) {
 	}
 
 	const event = String(headers[headerNames.event]);
-	const delivery = String(headers[headerNames.delivery]);
+	const delivery = fromGitlab ? 'gitlab' : String(headers[headerNames.delivery]);
 	if (!event)
 		return invalidRequest(`header ${headerNames.event} is empty`);
 	if (!delivery)
@@ -123,7 +148,8 @@ function handle(queryStrings, headers, body) {
 		case config.TYPE_BITBUCKET:
 		case config.TYPE_GITEE_COM:
 		case config.TYPE_GITEA:
-			verifyMethod = verify.bitbucket_gitee_gitea;
+		case config.TYPE_GITLAB:
+			verifyMethod = verify.bitbucket_gitee_gitea_gitlab;
 			break;
 		default:
 			// coding.net use verify method same as github
@@ -221,6 +247,19 @@ function isEventMatched(expectedEvents, actualEvent, type) {
 		if (actualEvent.startsWith(repoPrefix))
 			return expectedEvents.indexOf(actualEvent.slice(repoPrefix.length)) >= 0;
 		return false;
+	}
+
+	if (type === config.TYPE_GITLAB) {
+		if (expectedEvents.indexOf(actualEvent) >= 0) return true;
+
+		const lowercaseActualEvent = actualEvent.toLowerCase();
+		if (expectedEvents.indexOf(lowercaseActualEvent) >= 0) return true;
+
+		if (lowercaseActualEvent.endsWith(' hook')) {
+			// ' hook'.length === 5
+			const lastTry = lowercaseActualEvent.slice(0, lowercaseActualEvent.length - 5);
+			return expectedEvents.indexOf(lastTry) >= 0;
+		}
 	}
 	return expectedEvents.indexOf(actualEvent) >= 0;
 }

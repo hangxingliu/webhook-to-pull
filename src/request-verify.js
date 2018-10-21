@@ -6,7 +6,7 @@ const crypto = require('crypto');
 module.exports = {
 	github,
 	gogs,
-	bitbucket_gitee_gitea,
+	bitbucket_gitee_gitea_gitlab,
 };
 
 /** @type {VerifyFunction} */
@@ -22,6 +22,6 @@ function gogs(actual, rawBody, secret) {
 }
 
 /** @type {VerifyFunction} */
-function bitbucket_gitee_gitea(actual, rawBody, secret) {
+function bitbucket_gitee_gitea_gitlab(actual, rawBody, secret) {
 	return String(secret) === String(actual);
 }

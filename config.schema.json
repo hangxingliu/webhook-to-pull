@@ -44,7 +44,8 @@
 							"gitee.com",
 							"github",
 							"gogs",
-							"gitea"
+							"gitea",
+							"gitlab"
 						]
 					},
 					"async": {

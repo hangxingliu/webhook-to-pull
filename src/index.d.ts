@@ -18,6 +18,11 @@ type ConfigRepo = {
 type WebhookRequestBody = {
 	secret?: string;
 
+	/** gitlab */
+	project?: {
+		path_with_namespace?: string;
+	};
+
 	head_commit?: {
 		id: string;
 		message: string;

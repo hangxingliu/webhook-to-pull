@@ -9,14 +9,16 @@ const FILENAME = 'config.json';
 const FILE = path.join(__dirname, '..', FILENAME);
 
 const TYPE_GITHUB = 'github';
+const TYPE_GITLAB = 'gitlab';
 const TYPE_GOGS = 'gogs';
 const TYPE_BITBUCKET = 'bitbucket';
 const TYPE_CODING_NET = 'coding.net';
 const TYPE_GITEE_COM = 'gitee.com';
 const TYPE_GITEA = 'gitea';
 
-const validType = {
+const isValidTypes = {
 	[TYPE_GITHUB]: true,
+	[TYPE_GITLAB]: true,
 	[TYPE_GOGS]: true,
 	[TYPE_BITBUCKET]: true,
 	[TYPE_CODING_NET]: true,
@@ -43,6 +45,7 @@ module.exports = {
 	TYPE_CODING_NET,
 	TYPE_GITEE_COM,
 	TYPE_GITEA,
+	TYPE_GITLAB,
 };
 
 function readConfig() {
@@ -99,7 +102,7 @@ function load() {
 
 		if (!repo.type)
 			repo.type = defaultValues.type;
-		else if (!validType[repo.type])
+		else if (!isValidTypes[repo.type])
 			fatal(`${name}.type (${JSON.stringify(repo.type)}) is not a valid type`);
 
 		if (!repo.events)
