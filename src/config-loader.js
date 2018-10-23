@@ -5,8 +5,7 @@ const log = require('./log');
 const path = require('path');
 const fs = require('fs');
 
-const FILENAME = 'config.json';
-const FILE = path.join(__dirname, '..', FILENAME);
+const DEFAULT_FILE = path.join(__dirname, '..', 'config.json');
 
 const TYPE_GITHUB = 'github';
 const TYPE_GITLAB = 'gitlab';
@@ -48,12 +47,13 @@ module.exports = {
 	TYPE_GITLAB,
 };
 
-function readConfig() {
+/** @param {string} configFile */
+function readConfig(configFile) {
 	try {
-		const content = fs.readFileSync(FILE, 'utf8');
+		const content = fs.readFileSync(configFile, 'utf8');
 		return JSON.parse(content);
 	} catch (ex) {
-		log.fatal(`Invalid config file "${FILENAME}"`, ex);
+		log.fatal(`Invalid config file "${configFile}"`, ex);
 	}
 }
 
@@ -63,10 +63,10 @@ function get() { return config; }
 /**
  * @returns {Config}
  */
-function load() {
-	if (!fs.existsSync(FILE))
-		log.fatal(`Could not open config file "${FILENAME}", please create it before use`);
-	config = readConfig();
+function load(configFile = DEFAULT_FILE) {
+	if (!fs.existsSync(configFile))
+		log.fatal(`Could not open config file "${configFile}", please create it before use`);
+	config = readConfig(configFile);
 
 	const fatal = (why, reason = null) => log.fatal(`Invalid config: ${why}`, reason);
 

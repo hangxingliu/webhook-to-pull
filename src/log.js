@@ -2,6 +2,7 @@
 
 let chalk = require('chalk').default;
 
+let enableLogTest = false;
 // const recentSize = 128;
 // let recentLog = new Array(recentSize),
 // 	recentIndex = 0,
@@ -13,7 +14,9 @@ module.exports = {
 	warn,
 	error,
 	// getRecentLog,
-	fatal: (content, reason) => error(content, reason, true)
+	fatal: (content, reason) => error(content, reason, true),
+	enableLogTest: () => enableLogTest = true,
+	disableLogTest: () => enableLogTest = false,
 };
 
 function getPrefix(type) {
@@ -81,5 +84,9 @@ function error(content, reason = null, fatal = false) {
 		});
 	}
 
-	if (fatal) process.exit(1);
+	if (fatal) {
+		if (enableLogTest)
+			throw Error(content);
+		process.exit(1);
+	}
 }
