@@ -1,28 +1,31 @@
 {
-    "env": {
-        "commonjs": true,
+	"env": {
+		"commonjs": true,
 		"es6": true,
 		"node": true
-    },
-    "extends": "eslint:recommended",
-    "parserOptions": {
-        "sourceType": "module"
-    },
-    "rules": {
-        "indent": [
-            "error",
+	},
+	"extends": "eslint:recommended",
+	"parserOptions": {
+		"sourceType": "module"
+	},
+	"rules": {
+		"indent": [
+			"error",
 			"tab",
 			{
-				"indentSwitchCase": false
+				"SwitchCase": 1
 			}
-        ],
-        "linebreak-style": [
-            "error",
-            "unix"
-        ],
-        "semi": [
-            "error",
-            "always"
-        ]
-    }
+		],
+		"no-unused-vars": [
+			"warn"
+		],
+		"linebreak-style": [
+			"error",
+			"unix"
+		],
+		"semi": [
+			"error",
+			"always"
+		]
+	}
 }

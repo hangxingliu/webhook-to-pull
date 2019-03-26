@@ -1,19 +1,19 @@
 //@ts-check
 
-let express = require('express'),
-	log = require('./log')	,
-	config = require('./config-loader').load(),
-	server = require('./http-server');
+const express = require('express');
+const log = require('./log');
+const config = require('./config-loader').load();
+const server = require('./http-server');
 
-let bodyParser = require('body-parser'),
-	hookRequest = require('./handle-hook-request');
+const bodyParser = require('body-parser');
+const hookRequest = require('./handle-hook-request');
 
 if (process.argv.indexOf('test') >= 2) {
 	log.info('The configuration looks good!');
 	process.exit(0);
 }
 
-let app = express();
+const app = express();
 
 app.use(require('morgan')('dev'));
 

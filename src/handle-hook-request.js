@@ -121,17 +121,17 @@ function handle(queryStrings, headers, body) {
 	let signature = '';
 	if (fromBitbucket) {
 		signature = pickAnyOf(queryStrings, 'secret', 'token');
-		if(!signature)
+		if (!signature)
 			return invalidRequest(`query string is not included "secret" or "token"`);
 
 	} else if (fromGitea) {
 		signature = String(requestBody['secret']);
-		if(!signature)
+		if (!signature)
 			return invalidRequest(`body is not included "secret" field`);
 
 	} else {
-		signature = String(headers[headerNames.signature]);;
-		if(!signature)
+		signature = String(headers[headerNames.signature]);
+		if (!signature)
 			return invalidRequest(`header ${headerNames.signature} is empty`);
 	}
 
